@@ -40,6 +40,37 @@ async function appendExpenseToSheet(
   }
 }
 
+// Function to get total amount spent
+async function getTotalAmount(sheetId: string): Promise<number> {
+  try {
+    const auth = new JWT({
+      keyFile: CREDENTIALS_PATH,
+      scopes: SCOPES,
+    });
+
+    const sheets = google.sheets({ version: 'v4', auth });
+    const range = 'Sheet1!B:B'; // Amounts are in column B
+
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range,
+    });
+
+    const rows = res.data.values || [];
+    // Skip header if present, and sum all numeric values
+    const total = rows
+      .flat()
+      .map((v) => parseFloat(v))
+      .filter((n) => !isNaN(n))
+      .reduce((sum, n) => sum + n, 0);
+
+    return total;
+  } catch (error) {
+    console.error('Error fetching total amount:', error);
+    return 0;
+  }
+}
+
 // Discord bot setup
 const client = new Client({
   intents: [
@@ -90,7 +121,9 @@ client.on('messageCreate', async (message: Message) => {
 
       // Append to Google Sheet
       await appendExpenseToSheet(SHEET_ID, category, amount, date);
-      await message.reply(`Expense saved: ${category}, ₹${amount}, ${date}`);
+
+      const total = await getTotalAmount(SHEET_ID);
+      await message.reply(`Expense saved: ${category}, ₹${amount}, ${date}\nTotal spent: ₹${total}`);
     } catch (error) {
       console.error('Error processing expense:', error);
       await message.reply('Failed to save expense. Please try again later.');
