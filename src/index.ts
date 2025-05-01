@@ -93,7 +93,7 @@ client.on('messageCreate', async (message: Message) => {
 
   // Check if the message starts with the command prefix
   if (!content.startsWith(PREFIX)) {
-    await message.reply('Please use the format: `!add expense: <category>, <amount>, <date>`');
+    await message.reply('Please use the format: `!add expense: <category>, <amount>` or `!total`');
     return;
   }
 
@@ -128,8 +128,16 @@ client.on('messageCreate', async (message: Message) => {
       console.error('Error processing expense:', error);
       await message.reply('Failed to save expense. Please try again later.');
     }
+  } else if (command === 'total') {
+    try {
+      const total = await getTotalAmount(SHEET_ID);
+      await message.reply(`Total amount spent so far: ₹${total}`);
+    } catch (error) {
+      console.error('Error fetching total:', error);
+      await message.reply('Failed to fetch total. Please try again later.');
+    }
   } else {
-    await message.reply('Unknown command. Use `!add expense: <category>, <amount>`');
+    await message.reply('Unknown command. Use `!add expense: <category>, <amount>` or `!total`');
   }
 });
 
